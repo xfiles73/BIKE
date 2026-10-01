@@ -33,10 +33,10 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Pulisci e aggiorna le dipendenze
+    - name: Ripristina e installa dipendenze originali
       run: |
         flutter clean
-        flutter pub upgrade --major-versions # Tenta di aggiornare i pacchetti per risolvere i parametri mancanti
+        flutter pub get
 
     - name: Genera file di localizzazione
       run: flutter pub run intl_utils:generate
@@ -45,7 +45,7 @@ jobs:
       run: flutter config --enable-windows-desktop
 
     - name: Compila il file EXE
-      run: flutter build windows --release --no-sound-null-safety # Aggiunto flag per bypassare problemi di compatibilità vecchi
+      run: flutter build windows --release
 
     - name: Salva i file compilati (Artifact)
       uses: actions/upload-artifact@v4
