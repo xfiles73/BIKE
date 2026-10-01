@@ -1,0 +1,84 @@
+
+name: Build Flutter Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - qwen-code-*
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: bikecontrol_test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive   # needed if prop/ is a git submodule
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # If the checkout above fails because "prop" was committed as an empty
+      # (unresolved) submodule pointer, this step recreates it from prop_public
+      # so that flutter pub get can find the package.
+      - name: Ensure prop package exists (fallback)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "prop/pubspec.yaml")) {
+            Write-Host "prop/ missing or empty - copying from prop_public/"
+            if (Test-Path "prop") { Remove-Item -Recurse -Force "prop" }
+            Copy-Item -Recurse "prop_public" "prop"
+          }
+
+      # Patch known bug in smtc_windows cargokit resolve_symlinks.ps1 (Get-Item fails
+      # on 'AppData' junction on GitHub runners). See zzzground/smtc#26.
+      - name: Patch smtc_windows symlink resolver
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem -Path . -Recurse -Filter resolve_sym*inks.ps1 -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match 'smtc_windows' }
+          foreach ($f in $targets) {
+            Write-Host "Patching $($f.FullName)"
+            $c = Get-Content $f.FullName -Raw
+            $c = $c.Replace('if ($item.LinkTarget) {', 'if ($item -and $item.LinkTarget) {')
+            $c = "`$ErrorActionPreference = 'SilentlyContinue'`n" + $c
+            Set-Content $f.FullName $c -NoNewline
+          }
+
+      - name: Verify generated localizations exist
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "lib/gen/l10n.dart")) {
+            Write-Host "lib/gen missing - regenerating with gen-l10n"
+            flutter gen-l10n --arb-dir=lib/i10n --template-arb-file=intl_en.arb --output-dir=lib/gen --output-localization-file=l10n.dart --no-synthetic-package || true
+          }
+          if (-not (Test-Path "lib/gen/l10n.dart")) { exit 1 }
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: BIKE-Windows
+          path: bikecontrol_test/build/windows/x64/runner/Release/
+          if-no-files-found: error
