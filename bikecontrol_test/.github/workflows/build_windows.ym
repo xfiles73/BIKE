@@ -1,0 +1,40 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main, master ] # Si attiva quando fai un push su questi branch
+  workflow_dispatch: # Ti permette di avviare la compilazione manualmente dal sito
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Clona il codice
+      uses: actions/checkout@v4
+
+    - name: Configura Java (richiesto da Flutter)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Configura Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+
+    - name: Installa le dipendenze
+      run: flutter pub get
+
+    - name: Abilita il supporto Windows
+      run: flutter config --enable-windows-desktop
+
+    - name: Compila il file EXE
+      run: flutter build windows --release
+
+    - name: Salva i file compilati (Artifact)
+      uses: actions/upload-artifact@v4
+      with:
+        name: applicazione-windows
+        path: build/windows/runner/Release/
