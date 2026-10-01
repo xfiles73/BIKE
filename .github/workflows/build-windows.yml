@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive   # needed if prop/ is a git submodule
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -33,6 +35,18 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      # If the checkout above fails because "prop" was committed as an empty
+      # (unresolved) submodule pointer, this step recreates it from prop_public
+      # so that flutter pub get can find the package.
+      - name: Ensure prop package exists (fallback)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "prop/pubspec.yaml")) {
+            Write-Host "prop/ missing or empty - copying from prop_public/"
+            if (Test-Path "prop") { Remove-Item -Recurse -Force "prop" }
+            Copy-Item -Recurse "prop_public" "prop"
+          }
 
       - name: Build Windows Release
         run: flutter build windows --release
