@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: bikecontrol-main # Risolve l'errore dello screenshot spostandosi nella cartella corretta
+        working-directory: bikecontrol_test # Risolve l'errore dello screenshot spostandosi nella cartella corretta
 
     steps:
     - name: Clona il codice
