@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: Bikecontrol_test # 1. Sostituito qui per la cartella di lavoro
+        working-directory: Bikecontrol_test
 
     steps:
     - name: Clona il codice
@@ -30,15 +30,13 @@ jobs:
 
     - name: Configura Flutter
       uses: subosito/flutter-action@v2
-      env:
-        FORCE_JUST_JAVASCRIPT_ACTIONS_TO_NODE24: true
       with:
         channel: 'stable'
 
-    - name: Pulisci e installa dipendenze
+    - name: Pulisci e aggiorna le dipendenze
       run: |
         flutter clean
-        flutter pub get
+        flutter pub upgrade --major-versions # Tenta di aggiornare i pacchetti per risolvere i parametri mancanti
 
     - name: Genera file di localizzazione
       run: flutter pub run intl_utils:generate
@@ -47,10 +45,10 @@ jobs:
       run: flutter config --enable-windows-desktop
 
     - name: Compila il file EXE
-      run: flutter build windows --release
+      run: flutter build windows --release --no-sound-null-safety # Aggiunto flag per bypassare problemi di compatibilità vecchi
 
     - name: Salva i file compilati (Artifact)
       uses: actions/upload-artifact@v4
       with:
         name: applicazione-windows
-        path: Bikecontrol_test/build/windows/runner/Release/ # 2. Sostituito qui per il salvataggio dell'EXE
+        path: Bikecontrol_test/build/windows/runner/Release/
