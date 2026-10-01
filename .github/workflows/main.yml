@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: bikecontrol_test # Risolve l'errore dello screenshot spostandosi nella cartella corretta
+        working-directory: Bikecontrol_test # 1. Sostituito qui per la cartella di lavoro
 
     steps:
     - name: Clona il codice
@@ -31,7 +31,7 @@ jobs:
     - name: Configura Flutter
       uses: subosito/flutter-action@v2
       env:
-        FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        FORCE_JUST_JAVASCRIPT_ACTIONS_TO_NODE24: true
       with:
         channel: 'stable'
 
@@ -40,8 +40,8 @@ jobs:
         flutter clean
         flutter pub get
 
-    - name: Genera file di localizzazione (Metodo alternativo integrato)
-      run: flutter pub run intl_utils:generate # Rigenera i file delle traduzioni senza bisogno di l10n.yaml esterno
+    - name: Genera file di localizzazione
+      run: flutter pub run intl_utils:generate
 
     - name: Abilita il supporto Windows
       run: flutter config --enable-windows-desktop
@@ -53,4 +53,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: applicazione-windows
-        path: bikecontrol-main/build/windows/runner/Release/
+        path: Bikecontrol_test/build/windows/runner/Release/ # 2. Sostituito qui per il salvataggio dell'EXE
