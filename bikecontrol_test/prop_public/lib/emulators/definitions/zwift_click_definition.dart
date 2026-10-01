@@ -15,6 +15,7 @@ class ZwiftClickDefinition extends ProxyBikeDefinition {
   final ValueNotifier<bool> alreadyUnlocked;
   final ValueNotifier<bool> waiting;
   final ValueNotifier<bool> isStarted;
+  final String unlockKeyPrefix;
 
   ZwiftClickDefinition({
     required super.services,
@@ -26,6 +27,7 @@ class ZwiftClickDefinition extends ProxyBikeDefinition {
     required this.vendorMessage,
     required super.device,
     required super.data,
+    this.unlockKeyPrefix = 'clickV2',
   });
 
   @override
