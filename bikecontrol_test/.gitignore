@@ -51,7 +51,9 @@ localazy.json
 /android/app/profile
 /android/app/release
 
-lib/gen/
+# lib/gen/ generated localizations are COMMITTED so CI builds work (Flutter Intl not available on GitHub runners)
+!lib/gen/
+!lib/gen/**
 
 service-account.json
 .env
