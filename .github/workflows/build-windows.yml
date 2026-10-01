@@ -49,6 +49,30 @@ jobs:
             Copy-Item -Recurse "prop_public" "prop"
           }
 
+      # Patch known bug in smtc_windows cargokit resolve_symlinks.ps1 (Get-Item fails
+      # on 'AppData' junction on GitHub runners). See zzzground/smtc#26.
+      - name: Patch smtc_windows symlink resolver
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem -Path . -Recurse -Filter resolve_sym*inks.ps1 -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match 'smtc_windows' }
+          foreach ($f in $targets) {
+            Write-Host "Patching $($f.FullName)"
+            $c = Get-Content $f.FullName -Raw
+            $c = $c.Replace('if ($item.LinkTarget) {', 'if ($item -and $item.LinkTarget) {')
+            $c = "`$ErrorActionPreference = 'SilentlyContinue'`n" + $c
+            Set-Content $f.FullName $c -NoNewline
+          }
+
+      - name: Verify generated localizations exist
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "lib/gen/l10n.dart")) {
+            Write-Host "lib/gen missing - regenerating with gen-l10n"
+            flutter gen-l10n --arb-dir=lib/i10n --template-arb-file=intl_en.arb --output-dir=lib/gen --output-localization-file=l10n.dart --no-synthetic-package || true
+          }
+          if (-not (Test-Path "lib/gen/l10n.dart")) { exit 1 }
+
       - name: Build Windows Release
         run: flutter build windows --release
 
