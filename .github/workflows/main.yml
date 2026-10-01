@@ -2,30 +2,46 @@ name: Build Windows EXE
 
 on:
   push:
-    branches: [ main, master ] # Si attiva quando fai un push su questi branch
-  workflow_dispatch: # Ti permette di avviare la compilazione manualmente dal sito
+    branches: [ main, master ]
+  workflow_dispatch: 
 
 jobs:
   build:
     runs-on: windows-latest
 
+    defaults:
+      run:
+        working-directory: bikecontrol-main # Risolve l'errore dello screenshot spostandosi nella cartella corretta
+
     steps:
     - name: Clona il codice
       uses: actions/checkout@v4
 
-    - name: Configura Java (richiesto da Flutter)
-      uses: actions/setup-java@v4
+    - name: Configura Java
+      uses: actions/setup-java@v5
       with:
         distribution: 'zulu'
         java-version: '17'
 
+    - name: Installa ambiente C++ (Forzato x64)
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
+
     - name: Configura Flutter
       uses: subosito/flutter-action@v2
+      env:
+        FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       with:
         channel: 'stable'
 
-    - name: Installa le dipendenze
-      run: flutter pub get
+    - name: Pulisci e installa dipendenze
+      run: |
+        flutter clean
+        flutter pub get
+
+    - name: Genera file di localizzazione (Metodo alternativo integrato)
+      run: flutter pub run intl_utils:generate # Rigenera i file delle traduzioni senza bisogno di l10n.yaml esterno
 
     - name: Abilita il supporto Windows
       run: flutter config --enable-windows-desktop
@@ -37,4 +53,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: applicazione-windows
-        path: build/windows/runner/Release/
+        path: bikecontrol-main/build/windows/runner/Release/
