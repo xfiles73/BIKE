@@ -33,22 +33,11 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Ripristina e installa dipendenze originali
+    - name: Pulisci e forza downgrade delle dipendenze
       run: |
         flutter clean
+        # Forza il downgrade del pacchetto prop alla versione che supporta 'keyPrefix'
+        flutter pub downgrade prop 
         flutter pub get
 
     - name: Genera file di localizzazione
-      run: flutter pub run intl_utils:generate
-
-    - name: Abilita il supporto Windows
-      run: flutter config --enable-windows-desktop
-
-    - name: Compila il file EXE
-      run: flutter build windows --release
-
-    - name: Salva i file compilati (Artifact)
-      uses: actions/upload-artifact@v4
-      with:
-        name: applicazione-windows
-        path: Bikecontrol_test/build/windows/runner/Release/
