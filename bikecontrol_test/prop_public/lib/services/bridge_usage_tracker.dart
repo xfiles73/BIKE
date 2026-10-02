@@ -7,7 +7,11 @@ class BridgeUsageTracker {
 
   BridgeUsageTracker({required this.prefs, required this.dailyLimit});
 
-  ValueListenable<Duration> get usedTodayListenable => ValueNotifier(dailyLimit);
+  // Stable per-instance notifier: the UI binds ValueListenable to it and must
+  // not receive a brand-new object on every access (addListener/removeListener
+  // pairing would break, causing "addListener was called on null" crashes).
+  late final ValueNotifier<Duration> _usedTodayN = ValueNotifier(dailyLimit);
+  ValueListenable<Duration> get usedTodayListenable => _usedTodayN;
 
   /// Time used by bridge sessions today.
   Duration get usedToday => Duration.zero;
