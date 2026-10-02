@@ -2179,7 +2179,7 @@ class AppLocalizations {
 
   /// `Base`
   String get fullVersion {
-    return Intl.message('Base', name: 'fullVersion', desc: '', args: []);
+    return Intl.message('PRO', name: 'fullVersion', desc: '', args: []);
   }
 
   /// `The base version includes:\n- Unlimited commands per day\n- Access to all future updates\n- No subscription! A one-time fee only :)`

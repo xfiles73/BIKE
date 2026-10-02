@@ -8,7 +8,8 @@ import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_key_detector/media_key_detector.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
-import 'smtc_stub.dart' if (dart.library.io) 'package:smtc_windows/smtc_windows.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'smtc_stub.dart' if (dart.library.ffi) 'package:smtc_windows/smtc_windows.dart';
 
 class MediaKeyHandler {
   final ValueNotifier<bool> isMediaKeyDetectionEnabled = ValueNotifier(false);
@@ -21,7 +22,7 @@ class MediaKeyHandler {
     isMediaKeyDetectionEnabled.addListener(() async {
       if (!isMediaKeyDetectionEnabled.value) {
         FlutterVolumeController.removeListener();
-        if (Platform.isWindows) {
+        if (!kIsWeb && Platform.isWindows) {
           _smtc?.disableSmtc();
         } else {
           mediaKeyDetector.setIsPlaying(isPlaying: false);
@@ -54,7 +55,7 @@ class MediaKeyHandler {
             }
           },
         );
-        if (Platform.isWindows) {
+        if (!kIsWeb && Platform.isWindows) {
           if (!_smtcInitialized) {
             _smtcInitialized = true;
             await SMTCWindows.initialize();

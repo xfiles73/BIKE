@@ -100,7 +100,8 @@ class WindowsIAPService {
       IAPManager.instance.isPurchased.value = true;
       await _prefs.write(key: _purchaseStatusKey, value: "true");
     } else {
-      IAPManager.instance.isPurchased.value = true; // Free version: never locked
+      // FREE VERSION: store state must never lock the app back down.
+      IAPManager.instance.isPurchased.value = true;
     }
   }
 

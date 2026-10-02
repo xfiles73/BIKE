@@ -79,8 +79,7 @@ class EntitlementsService extends ChangeNotifier {
   }
 
   bool hasActive(String productKey) {
-    // Free version: every entitlement is always considered active.
-    return true;
+    return true; // FREE VERSION: every entitlement is always active.
   }
 
   DateTime? activeUntil(String productKey) {

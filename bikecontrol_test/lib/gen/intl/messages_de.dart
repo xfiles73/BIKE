@@ -1652,7 +1652,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Kleines Kettenblatt (Zähne)",
     ),
     "full": MessageLookupByLibrary.simpleMessage("Basis"),
-    "fullVersion": MessageLookupByLibrary.simpleMessage("Basis"),
+    "fullVersion": MessageLookupByLibrary.simpleMessage("PRO"),
     "fullVersionDescription": MessageLookupByLibrary.simpleMessage(
       "Die Basisversion beinhaltet: \n– Unbegrenzte Befehle pro Tag \n– Zugriff auf zukünftigen Updates \n– Kein Abonnement! Nur eine einmalige Gebühr :)",
     ),

@@ -14,12 +14,12 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 ///
 /// Returns true if the user initiated a purchase, false otherwise.
 Future<bool> showGoProDialog(BuildContext context, {String? featureName}) async {
-  // Free version: every Pro feature is unlocked, so the upgrade dialog is
-  // never shown. Kept as a no-op for existing call sites; returns false
-  // (no purchase initiated) like a dismissed dialog would.
+  // FREE VERSION: the upgrade dialog is never shown — every Pro feature is
+  // already unlocked, so we report "no purchase initiated" and return at once.
   return false;
+}
 
-  // ignore: dead_code
+Future<bool> _showGoProDialogUnused(BuildContext context, {String? featureName}) async {
   final iapManager = IAPManager.instance;
 
   final result = await showDialog<bool>(
