@@ -29,7 +29,22 @@ final DirconEmulator ftmsEmulator = DirconEmulator()..preferStandardPort = bridg
 /// Whether the trainer bridges serve on the standard Wahoo DirCon port.
 /// TrainerRoad has no entry of its own, so its riders pick "Other"; every
 /// named app keeps the auto-assigned port it had before 7.0.
-bool bridgeServesStandardDirconPort() => core.settings.getTrainerApp() is CustomApp;
+///
+/// IMPORTANT: this callback runs while `ProxyDevice` and the global
+/// [ftmsEmulator] are being constructed — which can happen before
+/// `Settings.init()` has assigned `prefs`. Reading prefs too early used to
+/// throw / return null and left emulator notifiers unset, producing the
+/// runtime crash "NoSuchMethodError: The method 'addListener' was called on
+/// null" when connecting a trainer. Guard with [isInitialized] and never
+/// let an unexpected error escape here.
+bool bridgeServesStandardDirconPort() {
+  try {
+    if (!core.settings.isInitialized) return false;
+    return core.settings.getTrainerApp() is CustomApp;
+  } catch (e) {
+    return false;
+  }
+}
 
 /// The blog post that explains why these controllers need unlocking.
 const zwiftUnlockBlogUrl = 'https://bikecontrol.app/blog/zwift-click-v2-with-other-trainer-apps/';
