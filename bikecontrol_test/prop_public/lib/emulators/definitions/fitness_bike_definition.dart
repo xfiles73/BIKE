@@ -112,19 +112,31 @@ class FitnessBikeDefinition extends BleDefinition {
 
   get ergTargetPower => null;
 
-  get currentGear => null;
+  // IMPORTANT: these must be stable per-instance fields, NOT freshly created
+  // in the getter. The app (ProxyDevice._restoreAndTrackGear, drivetrain
+  // widgets) calls addListener on them and later removeListener on a *different*
+  // call of the same getter; with per-call notifiers every access returned a
+  // brand-new object and the UI crashed with
+  // "NoSuchMethodError: The method 'addListener' was called on null".
+  final ValueNotifier<int> _currentGearN = ValueNotifier(0);
+  ValueListenable<int> get currentGear => _currentGearN;
 
   get targetPowerW => null;
 
-  get gearRatio => null;
+  final ValueNotifier<double> _gearRatioN = ValueNotifier(0.0);
+  ValueListenable<double> get gearRatio => _gearRatioN;
 
-  ValueNotifier<List<double>> get gearRatios => ValueNotifier([]);
+  final ValueNotifier<List<double>> _gearRatiosN = ValueNotifier([]);
+  ValueNotifier<List<double>> get gearRatios => _gearRatiosN;
 
-  ValueNotifier get virtualShiftingMode => ValueNotifier(false);
+  final ValueNotifier<bool> _virtualShiftingModeN = ValueNotifier(false);
+  ValueNotifier get virtualShiftingMode => _virtualShiftingModeN;
 
-  ValueNotifier get trainerFeature => ValueNotifier(false);
+  final ValueNotifier<bool> _trainerFeatureN = ValueNotifier(false);
+  ValueNotifier get trainerFeature => _trainerFeatureN;
 
-  ValueListenable<bool> get gradeSmoothingEnabled => ValueNotifier(false);
+  final ValueNotifier<bool> _gradeSmoothingEnabledN = ValueNotifier(false);
+  ValueListenable<bool> get gradeSmoothingEnabled => _gradeSmoothingEnabledN;
 
   int get neutralGear => 0;
 
