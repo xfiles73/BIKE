@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - main
-      - qwen-code-*
 
 permissions:
   contents: read
@@ -22,8 +21,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive   # needed if prop/ is a git submodule
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -36,86 +33,6 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-
-      # If the checkout above fails because "prop" was committed as an empty
-      # (unresolved) submodule pointer, this step recreates it from prop_public
-      # so that flutter pub get can find the package.
-      - name: Ensure prop package exists (fallback)
-        shell: pwsh
-        run: |
-          if (-not (Test-Path "prop/pubspec.yaml")) {
-            Write-Host "prop/ missing or empty - copying from prop_public/"
-            if (Test-Path "prop") { Remove-Item -Recurse -Force "prop" }
-            Copy-Item -Recurse "prop_public" "prop"
-          }
-
-      # The app uses the Flutter Intl IDE plugin which generates lib/gen/l10n.dart
-      # (class AppLocalizations). That file is committed, but if a branch/checkout
-      # ever lacks it, regenerate here so CI never fails with
-      # "Error when reading 'lib/gen/l10n.dart'" / "Type 'AppLocalizations' not found".
-      - name: Verify generated localizations exist
-        shell: pwsh
-        run: |
-          if (-not (Test-Path "lib/gen/l10n.dart")) {
-            Write-Host "lib/gen missing - regenerating with intl_utils generator"
-            flutter pub add dev:intl_utils --dry-run > $null 2>&1
-            dart pub global activate intl_utils 2.9.1
-            dart pub global run intl_utils:generate
-          }
-          if (-not (Test-Path "lib/gen/l10n.dart")) {
-            Write-Host "::error::lib/gen/l10n.dart still missing after regeneration"
-            exit 1
-          }
-          Select-String -Path lib/gen/l10n.dart -Pattern "class AppLocalizations" -Quiet
-          if ($LASTEXITCODE -ne 0 -and -not (Select-String -Path lib/gen/l10n.dart -Pattern "class AppLocalizations")) {
-            Write-Host "::error::lib/gen/l10n.dart does not define AppLocalizations"
-            exit 1
-          }
-          Write-Host "OK: lib/gen/l10n.dart present and defines AppLocalizations"
-
-      # Known bug in smtc_windows cargokit resolve_symlinks.ps1: Get-Item throws
-      # "Could not find item C:\Users\runneradmin\AppData" on GitHub runners when
-      # traversing junction points (see zzzground/smtc#26). It is non-fatal for the
-      # build itself, but to keep logs clean and avoid any hard failure we patch the
-      # script inside the pub cache right after pub get (before the build creates
-      # .plugin_symlinks).
-      - name: Patch smtc_windows symlink resolver (pub cache)
-        shell: pwsh
-        run: |
-          $cache = "$env:LOCALAPPDATA\Pub\Cache\hosted\pub.dev"
-          if (-not (Test-Path $cache)) { $cache = "$env:USERPROFILE\AppData\Local\Pub\Cache\hosted\pub.dev" }
-          $targets = @()
-          if (Test-Path $cache) {
-            $targets = Get-ChildItem -Path $cache -Recurse -Filter "resolve_symlinks.ps1" -ErrorAction SilentlyContinue |
-              Where-Object { $_.FullName -match "smtc" }
-          }
-          # Also patch any already-created plugin symlinks in the project tree
-          $targets += Get-ChildItem -Path . -Recurse -Filter "resolve_symlinks.ps1" -Force -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match "smtc" }
-          if ($targets.Count -eq 0) { Write-Host "No smtc resolve_symlinks.ps1 found - nothing to patch"; exit 0 }
-          foreach ($f in $targets) {
-            Write-Host "Patching $($f.FullName)"
-            $c = Get-Content $f.FullName -Raw
-            if ($c -notmatch "SilentlyContinue") {
-              $c = "`$ErrorActionPreference = 'SilentlyContinue'`n" + $c
-            }
-            $c = $c.Replace("if (`$item.LinkTarget)", "if (`$item -and `$item.LinkTarget)")
-            Set-Content $f.FullName $c -NoNewline
-          }
-
-      - name: Patch smtc_windows symlink resolver (build tree, best-effort)
-        continue-on-error: true
-        shell: pwsh
-        run: |
-          $targets = Get-ChildItem -Path . -Recurse -Filter resolve_sym*inks.ps1 -Force -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match 'smtc_windows' }
-          foreach ($f in $targets) {
-            Write-Host "Patching $($f.FullName)"
-            $c = Get-Content $f.FullName -Raw
-            $c = $c.Replace('if ($item.LinkTarget) {', 'if ($item -and $item.LinkTarget) {')
-            $c = "`$ErrorActionPreference = 'SilentlyContinue'`n" + $c
-            Set-Content $f.FullName $c -NoNewline
-          }
 
       - name: Build Windows Release
         run: flutter build windows --release
