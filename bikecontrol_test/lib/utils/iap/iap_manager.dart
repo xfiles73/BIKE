@@ -114,9 +114,9 @@ class IAPManager {
     _isInitialized = true;
   }
 
-  bool get hasPurchasedBefore50RVC =>
-      isPurchased.value &&
-      ((_revenueCatService?.hasPurchasedBefore50 ?? false) || (_windowsIapService?.hasPurchasedBefore50 ?? false));
+  /// Free version: legacy-purchase checks are irrelevant — report true so any
+  /// remaining UI gates treat the user as fully entitled.
+  bool get hasPurchasedBefore50RVC => true;
 
   DateTime? get premiumActiveUntil =>
       entitlements.activeUntil(premiumMonthlyProductKey) ?? entitlements.activeUntil(premiumYearlyProductKey);

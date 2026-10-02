@@ -578,6 +578,11 @@ class _PaywallState extends State<Paywall> {
 
   @override
   Widget build(BuildContext context) {
+    // Free version: the paywall is never shown. Any legacy entry point that
+    // still opens it renders an empty, inert placeholder instead of pricing.
+    return const SizedBox.shrink();
+
+    // ignore: dead_code
     return Container(
       constraints: const BoxConstraints(maxWidth: 500),
       child: SafeArea(
