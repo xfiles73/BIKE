@@ -112,7 +112,8 @@ class RevenueCatService {
         core.connection.signalNotification(
           LogNotification('RevenueCat API key not configured'),
         );
-        isPurchasedNotifier.value = false;
+        // Free version: never downgrade the purchase flag.
+        isPurchasedNotifier.value = true;
         _isInitialized = true;
         return;
       }
@@ -164,7 +165,8 @@ class RevenueCatService {
     } catch (e, s) {
       debugPrint('Error initializing RevenueCat: $e');
       recordError(e, s, context: 'Initializing RevenueCat');
-      isPurchasedNotifier.value = false;
+      // Free version: never downgrade the purchase flag.
+      isPurchasedNotifier.value = true;
       _isInitialized = true;
     }
 
@@ -218,7 +220,8 @@ class RevenueCatService {
     core.connection.signalNotification(LogNotification('User ID: $userId at ${customerInfo.requestDate}'));
     core.connection.signalNotification(LogNotification('Full Version entitlement: ${fullVersionEntitlements != null}'));
 
-    isProNotifier.value = customerInfo.entitlements.active.containsKey(proVersionEntitlement);
+    // Free version: Pro entitlement is always active — never sync from RevenueCat.
+    isProNotifier.value = true;
 
     if (fullVersionEntitlements == null) {
       // purchased before IAP migration
@@ -235,11 +238,13 @@ class RevenueCatService {
         core.connection.signalNotification(LogNotification('Apple receipt validated for version: $purchasedVersion'));
         if (purchasedVersion != null && purchasedVersion.contains(".")) {
           final parsedVersion = Version.parse(purchasedVersion);
-          isPurchasedNotifier.value = parsedVersion < Version(4, 2, 0) || parsedVersion >= Version(4, 4, 0);
+          // Free version: always purchased.
+          isPurchasedNotifier.value = true;
           hasPurchasedBefore50 = parsedVersion < Version(5, 0, 0);
         } else {
           final purchasedVersionAsInt = int.tryParse(purchasedVersion.toString()) ?? 1337;
-          isPurchasedNotifier.value = isPurchasedBuild(purchasedVersionAsInt, isMacOS: Platform.isMacOS);
+          // Free version: always purchased.
+          isPurchasedNotifier.value = true;
           hasPurchasedBefore50 = purchasedVersionAsInt < 114;
         }
       }
