@@ -56,8 +56,11 @@ class IAPManager {
     deviceIdentityService: deviceIdentity,
   );
 
-  ValueNotifier<bool> isPurchased = ValueNotifier<bool>(false);
-  ValueNotifier<bool> isLocalPro = ValueNotifier<bool>(false);
+  // Free version: the user is always considered a full/paid owner, so every
+  // UI gate that checks isPurchased.value treats the app as unlocked.
+  ValueNotifier<bool> isPurchased = ValueNotifier<bool>(true);
+  // Free version: local Pro entitlement is always active.
+  ValueNotifier<bool> isLocalPro = ValueNotifier<bool>(true);
 
   IAPManager._();
 
@@ -269,7 +272,9 @@ class IAPManager {
   }
 
   Future<void> reset(bool fullReset) async {
-    isPurchased.value = false;
+    // Free version: never downgrade the purchase flag back to false.
+    isPurchased.value = true;
+    isLocalPro.value = true;
     await entitlements.clearCache();
     _windowsIapService?.reset();
     await _revenueCatService?.reset(fullReset);
