@@ -79,9 +79,8 @@ class EntitlementsService extends ChangeNotifier {
   }
 
   bool hasActive(String productKey) {
-    return _entitlements.any((entitlement) {
-      return entitlement.productKey == productKey && entitlement.isActive;
-    });
+    // Free version: every entitlement is always considered active.
+    return true;
   }
 
   DateTime? activeUntil(String productKey) {
