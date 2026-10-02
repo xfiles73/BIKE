@@ -1659,7 +1659,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Corona piccola (denti)",
     ),
     "full": MessageLookupByLibrary.simpleMessage("Base"),
-    "fullVersion": MessageLookupByLibrary.simpleMessage("Base"),
+    "fullVersion": MessageLookupByLibrary.simpleMessage("PRO"),
     "fullVersionDescription": MessageLookupByLibrary.simpleMessage(
       "La versione base include: \n- Comandi illimitati al giorno \n- Accesso a tutti i futuri aggiornamenti \n- Nessun abbonamento! Un solo pagamento una tantum :)",
     ),

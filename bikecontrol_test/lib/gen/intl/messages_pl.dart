@@ -1644,7 +1644,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Mała tarcza (zęby)",
     ),
     "full": MessageLookupByLibrary.simpleMessage("Base"),
-    "fullVersion": MessageLookupByLibrary.simpleMessage("Base"),
+    "fullVersion": MessageLookupByLibrary.simpleMessage("PRO"),
     "fullVersionDescription": MessageLookupByLibrary.simpleMessage(
       "Wersja podstawowa zawiera: \n- Nielimitowane polecenia dziennie \n- Dostęp do wszystkich przyszłych aktualizacji \n- Brak subskrypcji! Opłata jednorazowa :)",
     ),

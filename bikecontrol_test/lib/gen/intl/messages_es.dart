@@ -1663,7 +1663,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Plato pequeño (dientes)",
     ),
     "full": MessageLookupByLibrary.simpleMessage("Base"),
-    "fullVersion": MessageLookupByLibrary.simpleMessage("Base"),
+    "fullVersion": MessageLookupByLibrary.simpleMessage("PRO"),
     "fullVersionDescription": MessageLookupByLibrary.simpleMessage(
       "La versión básica incluye: \n- Comandos ilimitados por día \n- Acceso a todas las actualizaciones futuras \n- ¡Sin suscripción! Un solo pago :)",
     ),

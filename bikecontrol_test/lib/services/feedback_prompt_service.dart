@@ -95,7 +95,11 @@ class FeedbackPromptService {
   static bool _alwaysFalse() => false;
 
   void start() {
-    for (final notifier in trainerConnections) {
+    // Defensive: a null notifier here means some connection getter returned
+    // null during startup; skip it instead of crashing the whole app with
+    // NoSuchMethodError on addListener.
+    trainerConnections.removeWhere((n) => n == null);
+    for (final notifier in trainerConnections.cast<ValueListenable<bool>>()) {
       void listener() => _onConnectionsChanged();
       notifier.addListener(listener);
       _disposers.add(() => notifier.removeListener(listener));

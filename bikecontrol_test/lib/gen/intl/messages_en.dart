@@ -1593,7 +1593,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Small chainring (teeth)",
     ),
     "full": MessageLookupByLibrary.simpleMessage("Base"),
-    "fullVersion": MessageLookupByLibrary.simpleMessage("Base"),
+    "fullVersion": MessageLookupByLibrary.simpleMessage("PRO"),
     "fullVersionDescription": MessageLookupByLibrary.simpleMessage(
       "The base version includes:\n- Unlimited commands per day\n- Access to all future updates\n- No subscription! A one-time fee only :)",
     ),

@@ -674,8 +674,14 @@ class Local extends TrainerConnection {
     }
   }
 
-  final ValueNotifier<bool> _isConnected = ValueNotifier(core.settings.getLocalEnabled());
-  final ValueNotifier<bool> _isStarted = ValueNotifier(core.settings.getLocalEnabled());
+  // NOTE: must not read `core.settings` here. `Local` is constructed eagerly
+  // as a `late final core.local` field initializer, i.e. while the global
+  // `core` singleton is still being built — before `settings.init()` has run
+  // and assigned `_prefs`. Touching prefs at this point throws LateInitializationError
+  // (the "addListener on null" startup crash), so start with safe defaults;
+  // the constructor body below syncs the real value once prefs are available.
+  final ValueNotifier<bool> _isConnected = ValueNotifier(false);
+  final ValueNotifier<bool> _isStarted = ValueNotifier(false);
 
   @override
   ValueNotifier<bool> get isConnected => _isConnected;
