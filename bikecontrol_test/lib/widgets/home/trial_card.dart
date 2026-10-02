@@ -200,6 +200,10 @@ VsBudgetCardState? vsBudgetCardState({
   required Duration remainingToday,
   required Duration dailyLimit,
 }) {
+  // Free version: no daily virtual-shifting budget applies to anyone.
+  return null;
+
+  // ignore: dead_code
   if (!isPurchased || isProForDevice || !trainerBridged || dailyLimit <= Duration.zero) return null;
   final remaining = remainingToday.isNegative ? Duration.zero : remainingToday;
   return VsBudgetCardState(minutesRemaining: remaining.inMinutes, minutesTotal: dailyLimit.inMinutes);
