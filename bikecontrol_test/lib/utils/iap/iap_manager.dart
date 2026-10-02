@@ -4,8 +4,6 @@ import 'dart:io';
 import 'package:bike_control/utils/auth/account_session.dart';
 import 'package:bike_control/gen/l10n.dart';
 import 'package:bike_control/models/device_limit_reached_error.dart';
-import 'package:bike_control/pages/paywall.dart';
-import 'package:bike_control/widgets/ui/sheet_pull_to_dismiss.dart';
 import 'package:bike_control/services/device_identity_service.dart';
 import 'package:bike_control/services/device_management_service.dart';
 import 'package:bike_control/services/entitlements_service.dart';
@@ -13,8 +11,6 @@ import 'package:bike_control/utils/core.dart';
 import 'package:bike_control/utils/iap/revenuecat_service.dart';
 import 'package:bike_control/utils/iap/windows_iap_service.dart';
 import 'package:bike_control/utils/windows_store_environment.dart';
-import 'package:bike_control/widgets/go_pro_dialog.dart';
-import 'package:bike_control/widgets/ui/toast.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -40,15 +36,10 @@ class IAPManager {
   static const String betaAccessProductKey = 'beta_access';
   static int dailyCommandLimit = 15;
 
-  /// Developer/test mode is deliberately available only in debug builds.
-  ///
-  /// Enable with:
-  ///   flutter run -d windows --dart-define=BIKECONTROL_DEV_MODE=true
-  ///
-  /// This is intended for local development/testing only and must not be
-  /// enabled for release builds.
-  static const bool developerTestMode =
-      kDebugMode && bool.fromEnvironment('BIKECONTROL_DEV_MODE', defaultValue: false);
+  /// The app is now distributed as a free version: every subscription, Pro,
+  /// trial and daily-command restriction has been removed. This flag is kept
+  /// (always true) so the existing gates short-circuit uniformly everywhere.
+  static const bool developerTestMode = true;
 
   RevenueCatService? _revenueCatService;
   WindowsIAPService? _windowsIapService;
@@ -103,61 +94,29 @@ class IAPManager {
   /// before the first entitlements fetch.
   bool get isBetaTester => (isLoggedIn && entitlements.hasActive(betaAccessProductKey) || kDebugMode);
 
-  /// True when a real subscription is active, or when the local debug-only
-  /// developer/test mode is enabled.
-  bool get hasActiveSubscription =>
-      developerTestMode ||
-      (isLoggedIn && (entitlements.hasActive(premiumMonthlyProductKey)) ||
-          entitlements.hasActive(premiumYearlyProductKey)) ||
-      (!isLoggedIn && isLocalPro.value);
+  /// Free version: subscriptions are no longer required.
+  bool get hasActiveSubscription => true;
 
-  /// Whether Pro-gated functionality is enabled.
-  ///
-  /// [developerTestMode] is compiled in only for debug builds, so a release
-  /// build cannot accidentally ship with this test entitlement.
-  bool get isProEnabled =>
-      developerTestMode ||
-      (hasActiveSubscription && (isLoggedIn || (!isLoggedIn && isLocalPro.value)));
+  /// Free version: all Pro-gated functionality is enabled.
+  bool get isProEnabled => true;
 
-  bool get isProEnabledForCurrentDevice {
-    if (!_isInitialized) return false;
-    if (_unregisteredDeviceForTesting) return false;
-    if (developerTestMode) return true;
-    return hasActiveSubscription &&
-        ((isLoggedIn && entitlements.isRegisteredDevice) || (!isLoggedIn && isLocalPro.value));
-  }
+  /// Free version: no device registration is required.
+  bool get isProEnabledForCurrentDevice => true;
 
-  /// Pro is on the account but this device is not registered for it, so the
-  /// Pro-gated features stay off here. Riders in this state used to see only
-  /// "Pro (unregistered device)" in the title bar and wrote in believing Pro
-  /// was broken — the home banner, the virtual-shifting notice and the
-  /// post-purchase dialog all key off this.
-  bool get isProButDeviceUnregistered => _isInitialized && isProEnabled && !isProEnabledForCurrentDevice;
+  bool get isProButDeviceUnregistered => false;
 
-  bool get isProEnabledForCurrentDeviceOrDidPurchaseOld {
-    if (!_isInitialized) return false;
-    return isProEnabledForCurrentDevice || hasPurchasedBefore50RVC;
-  }
+  bool get isProEnabledForCurrentDeviceOrDidPurchaseOld => true;
 
-  /// Test-only: makes [isProEnabledForCurrentDevice] report false while
-  /// [isProEnabled] holds — the state a logged-in rider lands in when the
-  /// device could not be registered (platform limit reached). Nothing in the
-  /// production paths sets it.
-  bool _unregisteredDeviceForTesting = false;
-
-  /// Test-only: force the Pro entitlement state so Pro-gated actions/UI can be
-  /// exercised without a live subscription or device registration.
-  /// [registeredDevice] false yields "Pro on the account, not on this device".
+  /// Test-only: kept for the existing test helpers; in the free version every
+  /// entitlement gate is hard-coded to "unlocked", so this is a no-op.
   @visibleForTesting
   void setProForTesting({required bool enabled, bool registeredDevice = true}) {
     _isInitialized = true;
-    _unregisteredDeviceForTesting = enabled && !registeredDevice;
-    isLocalPro.value = enabled;
   }
 
-  bool get hasPurchasedBefore50RVC =>
-      isPurchased.value &&
-      ((_revenueCatService?.hasPurchasedBefore50 ?? false) || (_windowsIapService?.hasPurchasedBefore50 ?? false));
+  /// Free version: legacy-purchase checks are irrelevant — report true so any
+  /// remaining UI gates treat the user as fully entitled.
+  bool get hasPurchasedBefore50RVC => true;
 
   DateTime? get premiumActiveUntil =>
       entitlements.activeUntil(premiumMonthlyProductKey) ?? entitlements.activeUntil(premiumYearlyProductKey);
@@ -220,215 +179,48 @@ class IAPManager {
     _syncPurchaseFlagFromEntitlements();
   }
 
-  /// Check if the trial period has started.
-  bool get hasTrialStarted {
-    if (isOutsideStoreWindowsBuild) {
-      return true;
-    }
-    if (_revenueCatService != null) {
-      return _revenueCatService!.hasTrialStarted;
-    } else if (_windowsIapService != null) {
-      return _windowsIapService!.hasTrialStarted;
-    }
-    return false;
-  }
+  /// Free version: there is no trial — everything is unlocked from the start.
+  bool get hasTrialStarted => true;
 
-  /// Start the trial period.
-  Future<void> startTrial() async {
-    if (_revenueCatService != null) {
-      await _revenueCatService!.startTrial();
-    }
-  }
+  /// Free version: no trial to start.
+  Future<void> startTrial() async {}
 
-  /// Get the number of days remaining in the trial.
-  int get trialDaysRemaining {
-    if (isOutsideStoreWindowsBuild) {
-      return 0;
-    }
-    if (_revenueCatService != null) {
-      return _revenueCatService!.trialDaysRemaining;
-    } else if (_windowsIapService != null) {
-      return _windowsIapService!.trialDaysRemaining;
-    }
-    return 0;
-  }
+  /// Free version: no trial countdown.
+  int get trialDaysRemaining => 0;
 
-  /// Check if the trial has expired.
-  bool get isTrialExpired {
-    // Before IAP is initialized there is no trial to have expired yet, and the
-    // pro/subscription checks below reach into Supabase which isn't wired up
-    // until startup completes. Mirror isProEnabledForCurrentDevice's guard.
-    if (!_isInitialized) return false;
-    if (isProEnabled) {
-      return false;
-    }
-    if (isOutsideStoreWindowsBuild && !isPurchased.value) {
-      return true;
-    }
-    if (_revenueCatService != null) {
-      return _revenueCatService!.isTrialExpired;
-    } else if (_windowsIapService != null) {
-      return _windowsIapService!.isTrialExpired;
-    }
-    return false;
-  }
+  /// Free version: the trial never expires because it doesn't exist.
+  bool get isTrialExpired => false;
 
-  /// Check if the user can execute a command.
-  bool get canExecuteCommand {
-    if (isProEnabled) return true;
-    if (_revenueCatService == null && _windowsIapService == null) return true;
+  /// Free version: commands are unlimited.
+  bool get canExecuteCommand => true;
 
-    if (_revenueCatService != null) {
-      return _revenueCatService!.canExecuteCommand;
-    } else if (_windowsIapService != null) {
-      return _windowsIapService!.canExecuteCommand;
-    }
-    return true;
-  }
+  /// Free version: -1 means unlimited commands remaining.
+  int get commandsRemainingToday => -1;
 
-  /// Get the number of commands remaining today (for free tier after trial).
-  int get commandsRemainingToday {
-    if (isProEnabled) {
-      return -1;
-    }
-    if (_revenueCatService != null) {
-      return _revenueCatService!.commandsRemainingToday;
-    } else if (_windowsIapService != null) {
-      return _windowsIapService!.commandsRemainingToday;
-    }
-    return -1;
-  }
+  /// Free version: daily command counting is disabled.
+  int get dailyCommandCount => 0;
 
-  /// Get the daily command count.
-  int get dailyCommandCount {
-    if (_revenueCatService != null) {
-      return _revenueCatService!.dailyCommandCount;
-    } else if (_windowsIapService != null) {
-      return _windowsIapService!.dailyCommandCount;
-    }
-    return 0;
-  }
-
-  /// Increment the daily command count.
-  Future<void> incrementCommandCount() async {
-    if (isProEnabled) {
-      return;
-    }
-    if (_revenueCatService != null) {
-      await _revenueCatService!.incrementCommandCount();
-    } else if (_windowsIapService != null) {
-      await _windowsIapService!.incrementCommandCount();
-    }
-  }
+  /// Free version: nothing to count — no-op kept for existing call sites.
+  Future<void> incrementCommandCount() async {}
 
   /// Get a status message for the user.
   String getStatusMessage() {
-    final activeUntil = premiumActiveUntil;
-    final expiryInfo = activeUntil != null ? '\nexpires at ${_formatDate(activeUntil)}' : '';
-
     if (kIsWeb) {
       return "Web";
-    } else if (developerTestMode) {
-      return 'Developer/Test mode (debug only)';
-    } else if (isProEnabledForCurrentDevice) {
-      return 'Pro$expiryInfo';
-    } else if (isProEnabled) {
-      return 'Pro (unregistered device)$expiryInfo';
-    } else if (isPurchased.value) {
-      return AppLocalizations.current.fullVersion;
-    } else if (isOutsideStoreWindowsBuild) {
-      return AppLocalizations.current.trialExpired(dailyCommandLimit);
-    } else if (!hasTrialStarted) {
-      return AppLocalizations.current.trialDaysAvailable(
-        _revenueCatService?.trialDaysRemaining ?? _windowsIapService?.trialDaysRemaining ?? 0,
-      );
-    } else if (!isTrialExpired) {
-      return AppLocalizations.current.trialDaysRemaining(trialDaysRemaining);
-    } else {
-      return AppLocalizations.current.commandsRemainingToday(commandsRemainingToday, dailyCommandLimit);
     }
+    // Free version: the app is fully unlocked on every platform.
+    return AppLocalizations.current.fullVersion;
   }
 
-  String _formatDate(DateTime date) {
-    final local = date.toLocal();
-    // when today return full time, otherwise just date
-    final now = DateTime.now();
-    if (local.year == now.year && local.month == now.month && local.day == now.day) {
-      return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-    } else {
-      return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
-    }
-  }
+  /// Free version: nothing to purchase — kept as a no-op for old call sites.
+  Future<void> purchaseFullVersion(BuildContext context, {bool fromPaywall = false}) async {}
 
-  /// Purchase the full version.
-  Future<void> purchaseFullVersion(BuildContext context, {bool fromPaywall = false}) async {
-    if (isOutsideStoreWindowsBuild) {
-      if (!fromPaywall) {
-        return _showPaywall(context, false);
-      }
-      return _windowsIapService!.purchaseFullVersionViaStripe(context);
-    }
-    // The in-app paywall is what riders see on every platform — RevenueCat's
-    // hosted sheet is only reached as a fallback when an offering has no
-    // matching package (see RevenueCatService.purchase*). `fromPaywall` is
-    // the paywall's own buttons asking for the direct store purchase.
-    if (!fromPaywall) {
-      return _showPaywall(context, false);
-    } else if (_revenueCatService != null) {
-      return _revenueCatService!.purchaseFullVersion(
-        context,
-        directPurchase: fromPaywall,
-      );
-    } else if (_windowsIapService != null) {
-      return _windowsIapService!.purchaseFullVersion();
-    }
-  }
-
-  /// Purchase a subscription.
+  /// Free version: nothing to purchase — kept as a no-op for old call sites.
   Future<void> purchaseSubscription(
     BuildContext context, {
     SubscriptionPlan plan = SubscriptionPlan.monthly,
     bool fromPaywall = false,
-  }) async {
-    if (!fromPaywall) {
-      return _showPaywall(context, true);
-    } else if (_revenueCatService != null) {
-      return _revenueCatService!.purchaseSubscription(
-        context,
-        directPurchase: fromPaywall,
-        yearly: plan == SubscriptionPlan.yearly,
-      );
-    } else if (_windowsIapService != null) {
-      return _windowsIapService!.purchaseSubscription(
-        context,
-        yearly: plan == SubscriptionPlan.yearly,
-      );
-    }
-  }
-
-  Future<void> _showPaywall(BuildContext context, bool subscription) async {
-    // openDrawer needs a DrawerOverlay ancestor (Scaffold creates one) and does
-    // `parentLayer!` in release, so a caller that hands us a context from above
-    // its own Scaffold turns "Go Pro" into a bare "Null check operator used on
-    // a null value" toast and the paywall never opens. Callers should pass a
-    // context below the Scaffold, but the paywall is the last thing that should
-    // break when one doesn't — fall back to a dialog, which only needs a
-    // Navigator. Paywall already constrains and scrolls itself.
-    if (DrawerOverlay.maybeFind(context) == null) {
-      await showDialog<void>(
-        context: context,
-        builder: (c) => Paywall(defaultToFullVersion: !subscription),
-      );
-      return;
-    }
-    openDrawer(
-      context: context,
-      // The paywall scrolls, which swallows the drawer's own swipe-to-close —
-      // SheetPullToDismiss restores it (pull down past the top).
-      builder: (c) => SheetPullToDismiss(child: Paywall(defaultToFullVersion: !subscription)),
-      position: OverlayPosition.bottom,
-    );
-  }
+  }) async {}
 
   /// Restore previous purchases.
   Future<void> restorePurchases() async {
@@ -547,11 +339,8 @@ class IAPManager {
   }
 
   void _syncPurchaseFlagFromEntitlements() {
-    if (isProEnabled) {
-      isPurchased.value = true;
-    } else if (isOutsideStoreWindowsBuild && entitlements.hasActive(fullVersionProductKey)) {
-      isPurchased.value = true;
-    }
+    // Free version: the app is fully purchased/unlocked by definition.
+    isPurchased.value = true;
   }
 
   /// Registers this device for the account's Pro subscription and refreshes
@@ -570,22 +359,13 @@ class IAPManager {
     await entitlements.refresh(force: true);
   }
 
-  /// [featureName] names the gated feature in the upgrade dialog — see
-  /// [showGoProDialog].
+  /// Free version: every feature is already unlocked, so this always succeeds.
   Future<bool> ensureProForFeature(
     BuildContext context, {
     bool isAllowedForOldPurchases = false,
     String? featureName,
   }) async {
-    if (isProEnabledForCurrentDevice || (isAllowedForOldPurchases && hasPurchasedBefore50RVC)) {
-      return true;
-    } else if (isProEnabled) {
-      buildToast(title: AppLocalizations.of(context).currentDeviceIsNotRegistered);
-      return isProEnabledForCurrentDevice;
-    } else {
-      await showGoProDialog(context, featureName: featureName);
-    }
-    return IAPManager.instance.hasActiveSubscription;
+    return true;
   }
 
   void setWinBoughtBefore50() {
